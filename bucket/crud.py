@@ -2,7 +2,7 @@ from botocore.exceptions import ClientError
 import os
 import logging
 
-PART_BYTE = 1024 * 10
+
 
 def list_buckets(aws_s3_client) -> list:
     return aws_s3_client.list_buckets()

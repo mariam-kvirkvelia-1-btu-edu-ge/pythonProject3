@@ -1,9 +1,10 @@
 import logging
 from botocore.exceptions import ClientError
 from auth import init_client
-from bucket.crud import list_buckets, create_bucket, delete_bucket, bucket_exists
+from bucket.crud import list_buckets, create_bucket, delete_bucket, bucket_exists, count
 from bucket.policy import read_bucket_policy, assign_policy
-from object.crud import download_file_and_upload_to_s3, get_objects
+from object.crud import download_file_and_upload_to_s3, get_objects,count_extensions
+from object.policy import set_expaired_object_policy
 from bucket.encryption import set_bucket_encryption, read_bucket_encryption
 import argparse
 
@@ -168,7 +169,82 @@ parser.add_argument("-uf",
                     const="True",
                     default="False")
 
+parser.add_argument("-oc",
+                    "--object_count",
+                    type=str,
+                    help="Upload file",
+                    nargs="?",
+                    const="True",
+                    default="False")
+parser.add_argument("-mu",
+                    "--multipart_upload",
+                    help=".",
+                    choices=["False", "True"],
+                    type=str,
+                    nargs="?",
+                    const="True",
+                    default="False")
 
+parser.add_argument("-up",
+                    "--upload_file",
+                    help="flag ",
+                    choices=["False", "True"],
+                    type=str,
+                    nargs="?",
+                    const="True",
+                    default="False")
+
+parser.add_argument("-ufo",
+                    "--upload_file_object",
+                    help="flag to count file extentions.",
+                    choices=["False", "True"],
+                    type=str,
+                    nargs="?",
+                    const="True",
+                    default="False")
+
+parser.add_argument("-ufp",
+                    "--upload_file_put",
+                    help="flag to count file extentions.",
+                    choices=["False", "True"],
+                    type=str,
+                    nargs="?",
+                    const="True",
+                    default="False")
+
+parser.add_argument("-df",
+                    "--download_file",
+                    help="flag to download file.",
+                    choices=["False", "True"],
+                    type=str,
+                    nargs="?",
+                    const="True",
+                    default="False")
+
+
+parser.add_argument("-seop",
+                    "--set_expaired_object_policy",
+                    help="set expaired object policy ",
+                    choices=["False", "True"],
+                    type=str,
+                    nargs="?",
+                    const="True",
+                    default="False")
+
+parser.add_argument("-fn",
+                    "--file_name",
+                    type=str,
+                    help="file name",
+                    default=None)
+
+parser.add_argument("-del",
+                    "--delete_file",
+                    help="delete file",
+                    choices=["False", "True"],
+                    type=str,
+                    nargs="?",
+                    const="True",
+                    default="False")
 def main():
   s3_client = init_client()
   args = parser.parse_args()
@@ -204,20 +280,36 @@ def main():
         print(
           download_file_and_upload_to_s3(s3_client, args.bucket_name,
                                          args.object_link))
+    if args.list_objects and args.object_count:
+        m = count_extensions(s3_client, args.bucket_name)
+        count(m)
+
+    if args.delete_file == "True" and args.file_name:
+        args.delete_file(s3_client, args.bucket_name, args.file_name)
+        print("file is deleted")
+
+    if args.download_file == "True" and args.file_name:
+        args.multipart_upload(s3_client, args.bucket_name, args.file_name)
+        print("file is downloaded")
+
+    if args.set_expaired_object_policy == "True":
+        set_expaired_object_policy(s3_client, args.bucket_name)
+        print("")
     if args.bucket_encryption == "True":
       if set_bucket_encryption(s3_client, args.bucket_name):
         print("Encryption set")
+
     if args.read_bucket_encryption == "True":
       print(read_bucket_encryption(s3_client, args.bucket_name))
 
     if (args.list_objects == "True"):
-      get_objects(s3_client, args.bucket_name)
+        get_objects(s3_client, args.bucket_name)
 
-  if (args.list_buckets):
-    buckets = list_buckets(s3_client)
-    if buckets:
-      for bucket in buckets['Buckets']:
-        print(f'  {bucket["Name"]}')
+    if (args.list_buckets):
+        buckets = list_buckets(s3_client)
+        if buckets:
+            for bucket in buckets['Buckets']:
+                print(f'  {bucket["Name"]}')
 
 
 if __name__ == "__main__":
